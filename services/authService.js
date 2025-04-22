@@ -1,4 +1,4 @@
-// services/authService.ts
+// services/authService.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL, STORAGE_KEYS } from './constants';
 
@@ -8,7 +8,7 @@ import { API_BASE_URL, STORAGE_KEYS } from './constants';
  * @param {string} password - User password
  * @returns {Promise} - Promise with user data or error
  */
-export const loginUser = async (email: string, password: string) => {
+export const loginUser = async (email, password) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/login`, {
       method: 'POST',
@@ -46,7 +46,7 @@ export const loginUser = async (email: string, password: string) => {
  * @param {Object} userData - User registration data
  * @returns {Promise} - Promise with user data or error
  */
-export const registerUser = async (userData: { email: string, password: string, name?: string }) => {
+export const registerUser = async (userData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/api/register`, {
       method: 'POST',
