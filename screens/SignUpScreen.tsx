@@ -1,21 +1,30 @@
+// screens/SignUpScreen.tsx
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  ActivityIndicator, 
+  Alert, 
+  StyleSheet 
+} from 'react-native';
+import { useAuth } from '../components/AuthContext';
 
-const API_URL = 'http://localhost:5008/api'; // Update with your actual API URL for production
+interface SignUpScreenProps {
+  navigation: any;
+}
 
-const SignUpScreen = ({ onSignUp, navigation }: any) => {
-  // If navigation is undefined, initialize with an object that has an empty navigate method
-  const nav = navigation || { navigate: () => console.log('Navigation not available') };
-  
+const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const { register, isLoading } = useAuth();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData({
@@ -29,7 +38,7 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
 
   const validateForm = () => {
     if (!formData.email || !formData.password || !formData.confirmPassword) {
-      setError('All fields are required');
+      setError('Email, password, and confirm password are required');
       return false;
     }
 
@@ -56,43 +65,14 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
   const handleSignUp = async () => {
     if (!validateForm()) return;
 
-    setIsLoading(true);
     setError('');
-
+    
     try {
-      const response = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name || formData.email.split('@')[0], // Use part of email as name if not provided
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Registration failed');
-        return;
-      }
-
-      // Store user data in AsyncStorage
-      await AsyncStorage.setItem('userId', data.userId);
-      await AsyncStorage.setItem('userName', data.name);
-      if (data.token) {
-        await AsyncStorage.setItem('userToken', data.token);
-      }
-
-      console.log('Registration successful:', data);
-      onSignUp(); // Call this function after successful registration
+      await register(formData.email, formData.password, formData.name);
+      // AuthContext will handle the state change
     } catch (error) {
-      console.error('Error during registration:', error);
-      setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
+      // Error is already handled in AuthContext
+      console.log('Registration failed');
     }
   };
 
@@ -107,7 +87,7 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
         <Text style={styles.logoText}>Sensitivv</Text>
       </View>
       
-      <Text style={styles.title}>Sign Up</Text>
+      <Text style={styles.title}>Create Account</Text>
       
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       
@@ -151,12 +131,13 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
       {isLoading ? (
         <ActivityIndicator size="large" color="#4285F4" style={styles.loadingIndicator} />
       ) : (
-        <Button 
-          title="Sign Up" 
-          onPress={handleSignUp} 
-          color="#4285F4" 
-          disabled={isLoading} 
-        />
+        <TouchableOpacity 
+          style={styles.signUpButton} 
+          onPress={handleSignUp}
+          disabled={isLoading}
+        >
+          <Text style={styles.signUpButtonText}>Sign Up</Text>
+        </TouchableOpacity>
       )}
       
       <View style={styles.orContainer}>
@@ -173,17 +154,15 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
         <Text style={styles.googleButtonText}>Sign up with Google</Text>
       </TouchableOpacity>
       
-      <Text
-        style={styles.link}
-        onPress={() => nav.navigate('Login')}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Login')}
+        disabled={isLoading}
       >
-        Already have an account? Login
-      </Text>
+        <Text style={styles.linkText}>Already have an account? Login</Text>
+      </TouchableOpacity>
     </View>
   );
 };
-
-export default SignUpScreen;
 
 const styles = StyleSheet.create({
   container: {
@@ -224,10 +203,17 @@ const styles = StyleSheet.create({
   loadingIndicator: {
     marginVertical: 15,
   },
-  link: {
-    marginTop: 15,
-    textAlign: 'center',
-    color: '#4285F4',
+  signUpButton: {
+    backgroundColor: '#4285F4',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  signUpButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   orContainer: {
     flexDirection: 'row',
@@ -260,4 +246,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
+  linkText: {
+    marginTop: 15,
+    textAlign: 'center',
+    color: '#4285F4',
+  },
 });
+
+export default SignUpScreen;

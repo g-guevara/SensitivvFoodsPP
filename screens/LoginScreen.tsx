@@ -1,36 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Text, View, TextInput, Button, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Config from 'react-native-config';
-import styles from '../styles/LoginStyles'; // Ensure this path is correct
+// screens/LoginScreen.tsx
+import React, { useState } from 'react';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  ActivityIndicator, 
+  Alert, 
+  StyleSheet 
+} from 'react-native';
+import { useAuth } from '../components/AuthContext';
 
-const API_URL = Config.API_URL || 'http://localhost:5008/api';
+interface LoginScreenProps {
+  navigation: any;
+}
 
-const LoginScreen = ({ onLogin, navigation }: any) => {
-  // If navigation is undefined, initialize with an object that has an empty navigate method
-  const nav = navigation || { navigate: () => console.log('Navigation not available') };
-  
+const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkLoginStatus = async () => {
-      try {
-        const userId = await AsyncStorage.getItem('userId');
-        if (userId) {
-          // User is already logged in
-          onLogin();
-        }
-      } catch (error) {
-        console.error('Error checking login status:', error);
-      }
-    };
-
-    checkLoginStatus();
-  }, []);
+  
+  const { login, isLoading } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -38,45 +28,19 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
       return;
     }
 
-    setIsLoading(true);
     setError('');
-
+    
     try {
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Authentication failed');
-        return;
-      }
-
-      // Store user data in AsyncStorage
-      await AsyncStorage.setItem('userId', data.userId);
-      await AsyncStorage.setItem('userName', data.name);
-      if (data.language) {
-        await AsyncStorage.setItem('userLanguage', data.language);
-      }
-
-      console.log('Login successful:', data);
-      onLogin(); // Call this function after successful login
+      await login(email, password);
+      // No need to navigate - AuthContext will handle authentication state
     } catch (error) {
-      console.error('Error during login:', error);
-      setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
+      // Error is already handled in AuthContext
+      console.log('Login failed');
     }
   };
 
   const handleGoogleLogin = () => {
     // Implement Google authentication logic
-    // This would typically use Expo's AuthSession or react-native-google-signin
     Alert.alert('Google Login', 'Google login functionality will be implemented here');
   };
 
@@ -112,12 +76,13 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
       {isLoading ? (
         <ActivityIndicator size="large" color="#4285F4" style={styles.loadingIndicator} />
       ) : (
-        <Button 
-          title="Login" 
-          onPress={handleLogin} 
-          color="#4285F4" 
-          disabled={isLoading} 
-        />
+        <TouchableOpacity 
+          style={styles.loginButton} 
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
+          <Text style={styles.loginButtonText}>Login</Text>
+        </TouchableOpacity>
       )}
       
       <View style={styles.orContainer}>
@@ -134,14 +99,103 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
         <Text style={styles.googleButtonText}>Login with Google</Text>
       </TouchableOpacity>
       
-      <Text
-        style={styles.link}
-        onPress={() => nav.navigate('SignUp')}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('SignUp')}
+        disabled={isLoading}
       >
-        Don't have an account? Sign Up
-      </Text>
+        <Text style={styles.linkText}>Don't have an account? Sign Up</Text>
+      </TouchableOpacity>
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  logoText: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#4285F4',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  input: {
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    backgroundColor: '#fff',
+  },
+  errorText: {
+    color: '#ff3b30',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  loadingIndicator: {
+    marginVertical: 15,
+  },
+  loginButton: {
+    backgroundColor: '#4285F4',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  orContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ccc',
+  },
+  orText: {
+    width: 40,
+    textAlign: 'center',
+    color: '#888',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginBottom: 15,
+  },
+  googleButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  linkText: {
+    marginTop: 15,
+    textAlign: 'center',
+    color: '#4285F4',
+  },
+});
 
 export default LoginScreen;

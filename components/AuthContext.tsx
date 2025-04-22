@@ -1,6 +1,9 @@
+// components/AuthContext.tsx
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { loginUser, registerUser, logoutUser, validateSession } from '../services/authService';
+import { STORAGE_KEYS } from '../services/constants';
 
 // Define types
 interface AuthContextType {
@@ -8,7 +11,8 @@ interface AuthContextType {
   userId: string | null;
   userName: string | null;
   isLoading: boolean;
-  login: (userId: string, name: string, token?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -23,6 +27,7 @@ export const AuthContext = createContext<AuthContextType>({
   userName: null,
   isLoading: true,
   login: async () => {},
+  register: async () => {},
   logout: async () => {},
 });
 
@@ -37,13 +42,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const storedUserId = await AsyncStorage.getItem('userId');
-        const storedUserName = await AsyncStorage.getItem('userName');
+        const storedUserId = await AsyncStorage.getItem(STORAGE_KEYS.USER_ID);
+        const storedUserName = await AsyncStorage.getItem(STORAGE_KEYS.USER_NAME);
+        const token = await AsyncStorage.getItem(STORAGE_KEYS.USER_TOKEN);
         
-        if (storedUserId) {
-          setUserId(storedUserId);
-          setUserName(storedUserName);
-          setIsAuthenticated(true);
+        if (storedUserId && token) {
+          // Validate the token with the server
+          try {
+            await validateSession();
+            setUserId(storedUserId);
+            setUserName(storedUserName);
+            setIsAuthenticated(true);
+          } catch (error) {
+            // Token is invalid, clear storage
+            console.log('Session validation failed, clearing auth data');
+            await logoutUser();
+          }
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
@@ -56,29 +70,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // Login function
-  const login = async (userId: string, name: string, token?: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      await AsyncStorage.setItem('userId', userId);
-      await AsyncStorage.setItem('userName', name);
-      if (token) {
-        await AsyncStorage.setItem('userToken', token);
-      }
+      setIsLoading(true);
+      const userData = await loginUser(email, password);
       
-      setUserId(userId);
-      setUserName(name);
+      setUserId(userData.userId);
+      setUserName(userData.name);
       setIsAuthenticated(true);
     } catch (error) {
       console.error('Error during login:', error);
-      Alert.alert('Login Error', 'There was a problem logging in. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
+      Alert.alert('Login Error', errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Register function
+  const register = async (email: string, password: string, name?: string) => {
+    try {
+      setIsLoading(true);
+      const userData = await registerUser({ email, password, name });
+      
+      setUserId(userData.userId);
+      setUserName(userData.name);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error('Error during registration:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
+      Alert.alert('Registration Error', errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Logout function
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('userId');
-      await AsyncStorage.removeItem('userName');
-      await AsyncStorage.removeItem('userToken');
+      setIsLoading(true);
+      await logoutUser();
       
       setUserId(null);
       setUserName(null);
@@ -86,6 +119,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error during logout:', error);
       Alert.alert('Logout Error', 'There was a problem logging out. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -97,6 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userName,
         isLoading,
         login,
+        register,
         logout,
       }}
     >
