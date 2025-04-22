@@ -7,7 +7,7 @@ import WishlistScreen from './WishlistScreen';
 // Named exports
 export { HomeScreen, TestScreen, ReactionsScreen, WishlistScreen };
 
-// Default exports for direct imports
+// Default exports for direct
 export default {
   HomeScreen,
   TestScreen,
