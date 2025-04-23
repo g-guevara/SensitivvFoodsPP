@@ -78,6 +78,22 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
     // Implement Google authentication logic
     // This would typically use Expo's AuthSession or react-native-google-signin
     Alert.alert('Google Login', 'Google login functionality will be implemented here');
+  
+  };
+    // New function to handle guest login
+  const handleGuestLogin = async () => {
+    try {
+      // Set guest data in AsyncStorage
+      await AsyncStorage.setItem('isGuest', 'true');
+      await AsyncStorage.setItem('userId', 'guest-user');  // Añadir un ID de invitado
+      await AsyncStorage.setItem('userName', 'Invitado');  // Opcional: añadir nombre de invitado
+      
+      console.log('Guest login successful');
+      onLogin(); // Ahora onLogin tendrá un userId para trabajar
+    } catch (error) {
+      console.error('Error during guest login:', error);
+      setError('Error accessing storage. Please try again.');
+    }
   };
 
   return (
@@ -133,7 +149,16 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
       >
         <Text style={styles.googleButtonText}>Login with Google</Text>
       </TouchableOpacity>
-      
+
+      {/* New Guest Login Button */}
+      <TouchableOpacity 
+        style={styles.guestButton} 
+        onPress={handleGuestLogin}
+        disabled={isLoading}
+      >
+        <Text style={styles.guestButtonText}>Enter as Guest</Text>
+      </TouchableOpacity>
+
       <Text
         style={styles.link}
         onPress={() => nav.navigate('SignUp')}

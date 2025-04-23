@@ -81,6 +81,25 @@ const styles = StyleSheet.create({
   loadingIndicator: {
     marginVertical: 15,
   },
+  
+  guestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f0f0',  // Light gray background
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingVertical: 12,
+    marginTop: 10,  // Add some space between the Google button and this one
+    marginBottom: 15,
+  },
+  guestButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+
 });
 
 export default styles;
