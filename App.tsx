@@ -9,6 +9,8 @@ import LoginScreen from './screens/LoginScreen';
 import SignUpScreen from './screens/SignUpScreen';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { ThemeProvider } from './components/ThemeContext';
+import { LoadingProvider } from './components/LoadingContext'; // Importar LoadingProvider
+import { ToastProvider } from './components/ToastContext'; // Importar ToastProvider
 
 const Stack = createStackNavigator();
 
@@ -59,9 +61,13 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
-          <NavigationContainer>
-            <AppNavigator />
-          </NavigationContainer>
+          <LoadingProvider>
+            <ToastProvider>
+              <NavigationContainer>
+                <AppNavigator />
+              </NavigationContainer>
+            </ToastProvider>
+          </LoadingProvider>
         </AuthProvider>
       </ThemeProvider>
     </SafeAreaProvider>

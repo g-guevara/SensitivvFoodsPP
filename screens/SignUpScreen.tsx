@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLoading } from '../components/LoadingContext'; // Importar useLoading
+import { useToast } from '../components/ToastContext'; // Importar useToast
 
 const API_URL = 'http://localhost:5008/api'; // Update with your actual API URL for production
 
@@ -8,13 +10,16 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
   // If navigation is undefined, initialize with an object that has an empty navigate method
   const nav = navigation || { navigate: () => console.log('Navigation not available') };
   
+  // Usar los hooks de loading y toast
+  const { showLoading, hideLoading } = useLoading();
+  const { success, error: showError, warning } = useToast();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: ''
   });
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleInputChange = (field: string, value: string) => {
@@ -30,16 +35,19 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
   const validateForm = () => {
     if (!formData.email || !formData.password || !formData.confirmPassword) {
       setError('All fields are required');
+      showError('All fields are required');
       return false;
     }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      showError('Passwords do not match');
       return false;
     }
 
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters');
+      showError('Password must be at least 8 characters');
       return false;
     }
 
@@ -47,6 +55,7 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Please enter a valid email address');
+      showError('Please enter a valid email address');
       return false;
     }
 
@@ -56,7 +65,7 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
   const handleSignUp = async () => {
     if (!validateForm()) return;
 
-    setIsLoading(true);
+    showLoading('Creating your account...');
     setError('');
 
     try {
@@ -75,7 +84,9 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
       const data = await response.json();
 
       if (!response.ok) {
+        hideLoading();
         setError(data.error || 'Registration failed');
+        showError(data.error || 'Registration failed');
         return;
       }
 
@@ -86,19 +97,25 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
         await AsyncStorage.setItem('userToken', data.token);
       }
 
+      hideLoading();
+      success(`Welcome to Sensitivv, ${data.name || 'New User'}!`);
       console.log('Registration successful:', data);
-      onSignUp(); // Call this function after successful registration
+      
+      // Pequeño retraso para que el usuario pueda ver el mensaje de éxito
+      setTimeout(() => {
+        onSignUp(data.userId, data.name, data.token); // Call this function after successful registration
+      }, 500);
     } catch (error) {
+      hideLoading();
       console.error('Error during registration:', error);
       setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
+      showError('Network error. Please try again.');
     }
   };
 
   const handleGoogleSignUp = () => {
     // Implement Google authentication logic
-    Alert.alert('Google Sign Up', 'Google sign up functionality will be implemented here');
+    warning('Google sign up will be available soon!');
   };
 
   return (
@@ -117,7 +134,6 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
         value={formData.name}
         onChangeText={(value) => handleInputChange('name', value)}
         autoCapitalize="words"
-        editable={!isLoading}
       />
       
       <TextInput
@@ -127,7 +143,6 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
         onChangeText={(value) => handleInputChange('email', value)}
         keyboardType="email-address"
         autoCapitalize="none"
-        editable={!isLoading}
       />
       
       <TextInput
@@ -136,7 +151,6 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
         value={formData.password}
         onChangeText={(value) => handleInputChange('password', value)}
         secureTextEntry
-        editable={!isLoading}
       />
       
       <TextInput
@@ -145,19 +159,13 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
         value={formData.confirmPassword}
         onChangeText={(value) => handleInputChange('confirmPassword', value)}
         secureTextEntry
-        editable={!isLoading}
       />
       
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#4285F4" style={styles.loadingIndicator} />
-      ) : (
-        <Button 
-          title="Sign Up" 
-          onPress={handleSignUp} 
-          color="#4285F4" 
-          disabled={isLoading} 
-        />
-      )}
+      <Button 
+        title="Sign Up" 
+        onPress={handleSignUp} 
+        color="#4285F4" 
+      />
       
       <View style={styles.orContainer}>
         <View style={styles.line} />
@@ -168,7 +176,6 @@ const SignUpScreen = ({ onSignUp, navigation }: any) => {
       <TouchableOpacity 
         style={styles.googleButton} 
         onPress={handleGoogleSignUp}
-        disabled={isLoading}
       >
         <Text style={styles.googleButtonText}>Sign up with Google</Text>
       </TouchableOpacity>
@@ -220,9 +227,6 @@ const styles = StyleSheet.create({
     color: '#ff3b30',
     marginBottom: 15,
     textAlign: 'center',
-  },
-  loadingIndicator: {
-    marginVertical: 15,
   },
   link: {
     marginTop: 15,

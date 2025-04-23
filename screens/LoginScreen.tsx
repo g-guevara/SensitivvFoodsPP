@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, TextInput, Button, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import { Text, View, TextInput, Button, TouchableOpacity, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Config from 'react-native-config';
-import styles from '../styles/LoginStyles'; // Ensure this path is correct
+import styles from '../styles/LoginStyles';
+import { useLoading } from '../components/LoadingContext'; // Importar useLoading
+import { useToast } from '../components/ToastContext'; // Importar useToast
 
 const API_URL = Config.API_URL || 'http://localhost:5008/api';
 
@@ -12,20 +14,29 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  // Usar los hooks de loading y toast
+  const { showLoading, hideLoading } = useLoading();
+  const { success, error: showError, info } = useToast();
 
   // Check if user is already logged in
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
+        showLoading('Checking login status...');
         const userId = await AsyncStorage.getItem('userId');
         if (userId) {
           // User is already logged in
-          onLogin();
+          const userName = await AsyncStorage.getItem('userName') || 'User';
+          success(`Welcome back, ${userName}!`);
+          onLogin(userId, userName);
         }
+        hideLoading();
       } catch (error) {
+        hideLoading();
         console.error('Error checking login status:', error);
+        showError('Error checking login status');
       }
     };
 
@@ -34,11 +45,12 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
+      showError('Email and password are required');
       setError('Email and password are required');
       return;
     }
 
-    setIsLoading(true);
+    showLoading('Signing in...');
     setError('');
 
     try {
@@ -53,7 +65,9 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
       const data = await response.json();
 
       if (!response.ok) {
+        hideLoading();
         setError(data.error || 'Authentication failed');
+        showError(data.error || 'Authentication failed');
         return;
       }
 
@@ -64,35 +78,41 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
         await AsyncStorage.setItem('userLanguage', data.language);
       }
 
+      hideLoading();
+      success(`Welcome, ${data.name}!`);
       console.log('Login successful:', data);
-      onLogin(); // Call this function after successful login
+      onLogin(data.userId, data.name); // Call this function after successful login
     } catch (error) {
+      hideLoading();
       console.error('Error during login:', error);
       setError('Network error. Please try again.');
-    } finally {
-      setIsLoading(false);
+      showError('Network error. Please try again.');
     }
   };
 
   const handleGoogleLogin = () => {
     // Implement Google authentication logic
-    // This would typically use Expo's AuthSession or react-native-google-signin
-    Alert.alert('Google Login', 'Google login functionality will be implemented here');
-  
+    info('Google login coming soon!');
   };
-    // New function to handle guest login
+
   const handleGuestLogin = async () => {
     try {
+      showLoading('Entering as guest...');
+      
       // Set guest data in AsyncStorage
       await AsyncStorage.setItem('isGuest', 'true');
-      await AsyncStorage.setItem('userId', 'guest-user');  // Añadir un ID de invitado
-      await AsyncStorage.setItem('userName', 'Invitado');  // Opcional: añadir nombre de invitado
+      await AsyncStorage.setItem('userId', 'guest-user');
+      await AsyncStorage.setItem('userName', 'Guest');
       
+      hideLoading();
+      success('Welcome, Guest!');
       console.log('Guest login successful');
-      onLogin(); // Ahora onLogin tendrá un userId para trabajar
+      onLogin('guest-user', 'Guest');
     } catch (error) {
+      hideLoading();
       console.error('Error during guest login:', error);
       setError('Error accessing storage. Please try again.');
+      showError('Error accessing storage. Please try again.');
     }
   };
 
@@ -113,7 +133,6 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
-        editable={!isLoading}
       />
       
       <TextInput
@@ -122,19 +141,13 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        editable={!isLoading}
       />
       
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#4285F4" style={styles.loadingIndicator} />
-      ) : (
-        <Button 
-          title="Login" 
-          onPress={handleLogin} 
-          color="#4285F4" 
-          disabled={isLoading} 
-        />
-      )}
+      <Button 
+        title="Login" 
+        onPress={handleLogin} 
+        color="#4285F4" 
+      />
       
       <View style={styles.orContainer}>
         <View style={styles.line} />
@@ -145,16 +158,14 @@ const LoginScreen = ({ onLogin, navigation }: any) => {
       <TouchableOpacity 
         style={styles.googleButton} 
         onPress={handleGoogleLogin}
-        disabled={isLoading}
       >
         <Text style={styles.googleButtonText}>Login with Google</Text>
       </TouchableOpacity>
 
-      {/* New Guest Login Button */}
+      {/* Guest Login Button */}
       <TouchableOpacity 
         style={styles.guestButton} 
         onPress={handleGuestLogin}
-        disabled={isLoading}
       >
         <Text style={styles.guestButtonText}>Enter as Guest</Text>
       </TouchableOpacity>

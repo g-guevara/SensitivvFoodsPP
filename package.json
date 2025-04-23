@@ -11,6 +11,7 @@
     "dev": "concurrently \"npm run server\" \"npm start\""
   },
   "dependencies": {
+    "@expo/metro-runtime": "~4.0.1",
     "@expo/vector-icons": "^14.0.2",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-navigation/bottom-tabs": "^7.3.10",
@@ -25,17 +26,18 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
     "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-native": "0.76.7",
     "react-native-config": "^1.5.5",
+    "react-native-flash-message": "^0.4.2",
     "react-native-gesture-handler": "^2.25.0",
     "react-native-get-random-values": "^1.11.0",
     "react-native-reanimated": "^3.17.3",
     "react-native-safe-area-context": "^4.14.1",
     "react-native-screens": "^4.10.0",
+    "react-native-toast-message": "^2.3.0",
     "react-native-vector-icons": "^10.2.0",
-    "react-dom": "18.3.1",
-    "react-native-web": "~0.19.13",
-    "@expo/metro-runtime": "~4.0.1"
+    "react-native-web": "~0.19.13"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
