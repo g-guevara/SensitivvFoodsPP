@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SafeAreaView, ScrollView, Text, View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { styles as baseStyles } from '../styles/HomeStyles';
 import ProfileScreen from './ProfileScreen';
+import ProductDetailScreen from './ProductDetailScreen';
 import HomeHeaderAndSearch from '../components/home/HomeHeaderAndSearch';
 import HomeContent from '../components/home/HomeContent';
 import { LocalFoodDataService, Product } from '../services/localFoodDataServices';
@@ -44,7 +45,7 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   }, []);
 
   const performSearch = async (text: string) => {
-    if (text.trim().length > 2) {
+    if (text.trim().length > 0) {
       setIsSearching(true);
       setErrorMessage('');
       try {
@@ -77,8 +78,8 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   };
 
   const handleSearchSubmit = () => {
-    if (searchText.trim().length < 3) {
-      showToast('Please enter at least 3 characters', 'warning');
+    if (searchText.trim().length === 0) {
+      showToast('Please enter some text to search', 'warning');
       return;
     }
     performSearch(searchText);
@@ -91,9 +92,11 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
     setErrorMessage('');
   };
 
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
   const handleProductSelect = (product: Product) => {
     console.log('Selected product:', product);
-    // Handle product selection (navigate to detail screen, etc.)
+    setSelectedProduct(product);
   };
 
   return (
@@ -110,12 +113,6 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
           onProfilePress={() => setShowProfile(true)}
           onSubmit={handleSearchSubmit}
         />
-
-        {searchText.length > 0 && searchText.length < 3 && (
-          <View style={styles.infoContainer}>
-            <Text style={styles.infoText}>Please enter at least 3 characters and press Enter to search</Text>
-          </View>
-        )}
 
         {errorMessage ? (
           <View style={styles.errorContainer}>
@@ -156,6 +153,13 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
             onLogout?.();
           }}
           onClose={() => setShowProfile(false)}
+        />
+      )}
+      
+      {selectedProduct && (
+        <ProductDetailScreen 
+          product={selectedProduct} 
+          onClose={() => setSelectedProduct(null)}
         />
       )}
     </SafeAreaView>
