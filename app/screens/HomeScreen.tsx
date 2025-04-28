@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SafeAreaView, ScrollView, Text, View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { styles as baseStyles } from '../styles/HomeStyles';
 import ProfileScreen from './ProfileScreen';
 import HomeHeaderAndSearch from '../components/home/HomeHeaderAndSearch';
 import HomeContent from '../components/home/HomeContent';
-import { OpenFoodFactsApi, Product } from '../services/openFoodFactsApi';
+import { Product } from '../services/openFoodFactsApi';
+import { LocalFoodDataService } from '../services/LocalFoodDataService';
 import { useToast } from '../utils/ToastContext';
 
 interface User {
@@ -27,7 +28,24 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { showToast } = useToast();
+
+  // Load food data when component mounts
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await LocalFoodDataService.loadData();
+        setIsDataLoaded(true);
+      } catch (error) {
+        console.error('Failed to preload food data:', error);
+        setErrorMessage('Failed to load product database. Using sample data.');
+        setIsDataLoaded(true);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const performSearch = async (text: string) => {
     if (text.trim().length > 2) {
@@ -35,13 +53,10 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
       setErrorMessage('');
       try {
         console.log('Starting search for:', text);
-        const response = await OpenFoodFactsApi.searchProducts(text);
+        const response = await LocalFoodDataService.searchProducts(text);
         
         if (response.products.length === 0) {
           setErrorMessage('No products found. Try different search terms.');
-          if (Platform.OS === 'web') {
-            setErrorMessage('No products found. Note: The Open Food Facts API may have CORS restrictions on web.');
-          }
         } else {
           setSearchResults(response.products);
           setErrorMessage('');
@@ -49,14 +64,7 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
         }
       } catch (error) {
         console.error('Search error:', error);
-        
-        // Provide platform-specific error messages
-        if (Platform.OS === 'web') {
-          setErrorMessage('Unable to search products. The service may be blocked by CORS policy on web. Try using the mobile app.');
-        } else {
-          setErrorMessage('Unable to search products. Please check your internet connection.');
-        }
-        
+        setErrorMessage('Unable to search products. Please try again.');
         showToast('Search failed. Please try again.', 'error');
         setSearchResults([]);
       } finally {
@@ -89,7 +97,23 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
 
   const handleProductSelect = (product: Product) => {
     console.log('Selected product:', product);
+    // Here you would navigate to a product detail screen
+    showToast(`Selected: ${product.product_name}`, 'success');
   };
+
+  // Show loading indicator while data is being loaded
+  if (!isDataLoaded) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#7d7d7d" />
+          <Text style={styles.loadingText}>
+            Loading product database...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -115,11 +139,6 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
         {errorMessage ? (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{errorMessage}</Text>
-            {Platform.OS === 'web' && (
-              <Text style={styles.errorSubtext}>
-                For best results, use the mobile app to avoid browser security restrictions.
-              </Text>
-            )}
           </View>
         ) : (
           <HomeContent
@@ -135,7 +154,7 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#7d7d7d" />
             <Text style={styles.loadingText}>
-              Searching... This may take a while...
+              Searching...
             </Text>
           </View>
         )}
