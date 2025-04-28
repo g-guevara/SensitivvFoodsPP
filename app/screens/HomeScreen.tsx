@@ -4,8 +4,7 @@ import { styles as baseStyles } from '../styles/HomeStyles';
 import ProfileScreen from './ProfileScreen';
 import HomeHeaderAndSearch from '../components/home/HomeHeaderAndSearch';
 import HomeContent from '../components/home/HomeContent';
-import { Product } from '../services/openFoodFactsApi';
-import { LocalFoodDataService } from '../services/LocalFoodDataService';
+import { LocalFoodDataService, Product } from '../services/localFoodDataServices';
 import { useToast } from '../utils/ToastContext';
 
 interface User {
@@ -28,23 +27,20 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const { showToast } = useToast();
 
-  // Load food data when component mounts
+  // Load the local food data on component mount
   useEffect(() => {
-    const loadData = async () => {
+    async function loadInitialData() {
       try {
         await LocalFoodDataService.loadData();
-        setIsDataLoaded(true);
       } catch (error) {
-        console.error('Failed to preload food data:', error);
-        setErrorMessage('Failed to load product database. Using sample data.');
-        setIsDataLoaded(true);
+        console.error('Error loading initial food data:', error);
+        setErrorMessage('Failed to load food database. Please restart the app.');
       }
-    };
-
-    loadData();
+    }
+    
+    loadInitialData();
   }, []);
 
   const performSearch = async (text: string) => {
@@ -97,23 +93,8 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
 
   const handleProductSelect = (product: Product) => {
     console.log('Selected product:', product);
-    // Here you would navigate to a product detail screen
-    showToast(`Selected: ${product.product_name}`, 'success');
+    // Handle product selection (navigate to detail screen, etc.)
   };
-
-  // Show loading indicator while data is being loaded
-  if (!isDataLoaded) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#7d7d7d" />
-          <Text style={styles.loadingText}>
-            Loading product database...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
