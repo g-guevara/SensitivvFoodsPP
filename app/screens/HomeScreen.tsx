@@ -5,7 +5,6 @@ import ProfileScreen from './ProfileScreen';
 import ProductDetailScreen from './ProductDetailScreen';
 import HomeHeaderAndSearch from '../components/home/HomeHeaderAndSearch';
 import HomeContent from '../components/home/HomeContent';
-import { LocalFoodDataService, Product } from '../services/localFoodDataServices';
 import { useToast } from '../utils/ToastContext';
 
 interface User {
