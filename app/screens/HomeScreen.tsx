@@ -163,18 +163,7 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
                 </TouchableOpacity>
               ))}
               
-                              {/* Botón "Show All Products" que solo aparece cuando no hay búsqueda y mostramos los destacados */}
-              {!searchText && searchResults.length < sampleProducts.length && (
-                <TouchableOpacity 
-                  style={styles.showAllButton}
-                  onPress={() => {
-                    setSearchResults(sampleProducts);
-                    setIsSearchFocused(true); // Enfocar al mostrar todos los productos
-                  }}
-                >
-                  <Text style={styles.showAllButtonText}>Show All Products</Text>
-                </TouchableOpacity>
-              )}
+
             </>
           ) : (
             <View style={styles.noResultsContainer}>
@@ -324,20 +313,5 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     marginTop: 8,
-  },
-  showAllButton: {
-    backgroundColor: '#f0f0f0',
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginTop: 5,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  showAllButtonText: {
-    color: '#007BFF',
-    fontWeight: '600',
-    fontSize: 14,
   }
 });
