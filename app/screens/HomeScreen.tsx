@@ -21,7 +21,6 @@ interface HomeScreenProps {
 export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [searchText, setSearchText] = useState('');
-  // Initialize with only the first 2 products
   const [searchResults, setSearchResults] = useState(sampleProducts.slice(0, 2));
   const { showToast } = useToast();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -29,39 +28,35 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   // Function to handle search
   const handleSearch = (text: string) => {
     setSearchText(text);
-    
+
     if (text.trim() === '') {
-      // When there's no search term, show only the first 2 products
       setSearchResults(sampleProducts.slice(0, 2));
     } else {
-      const filtered = sampleProducts.filter(product => 
+      const filtered = sampleProducts.filter(product =>
         product.product_name.toLowerCase().includes(text.toLowerCase()) ||
         product.brands.toLowerCase().includes(text.toLowerCase()) ||
         product.ingredients_text.toLowerCase().includes(text.toLowerCase())
       );
-      setSearchResults(filtered);
+
+      setSearchResults(filtered.slice(0, 15)); // Show only up to 15 results
     }
   };
 
-  // Function to render default emoji if image fails to load
   const getDefaultEmoji = (product: typeof sampleProducts[0]): string => {
     const name = product.product_name.toLowerCase();
     const ingredients = product.ingredients_text.toLowerCase();
-    
+
     if (name.includes('erdnuss') || ingredients.includes('erdnüsse')) return '🥜';
     if (name.includes('hafer') || ingredients.includes('hafer')) return '🌾';
     if (name.includes('sekt')) return '🍾';
     if (name.includes('kuchen') || name.includes('back')) return '🍰';
     if (name.includes('quinoa')) return '🌿';
-    
-    // Default emoji if no match
     return '🍽️';
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* Header with profile button */}
         <View style={styles.headerContainer}>
           <Text style={styles.headerText}>Home</Text>
           <TouchableOpacity style={styles.profileButton} onPress={() => setShowProfile(true)}>
@@ -69,7 +64,6 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
           </TouchableOpacity>
         </View>
 
-        {/* Simple search bar */}
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -78,15 +72,14 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
             onChangeText={handleSearch}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => {
-              // Only change to not focused if there's no search text
               if (!searchText) {
                 setIsSearchFocused(false);
               }
             }}
           />
           {searchText ? (
-            <TouchableOpacity 
-              style={styles.clearButton} 
+            <TouchableOpacity
+              style={styles.clearButton}
               onPress={() => {
                 handleSearch('');
                 setIsSearchFocused(false);
@@ -97,17 +90,16 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
           ) : null}
         </View>
 
-        {/* Search results */}
         <View style={styles.resultsContainer}>
           <Text style={styles.sectionTitle}>
             {searchText ? 'Search Results' : 'Featured Products (2 of 6)'}
           </Text>
-          
+
           {searchResults.length > 0 ? (
             <>
               {searchResults.map(product => (
-                <TouchableOpacity 
-                  key={product.code} 
+                <TouchableOpacity
+                  key={product.code}
                   style={styles.productItem}
                   onPress={() => {}}
                 >
@@ -141,7 +133,6 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
           )}
         </View>
 
-        {/* Food categories section - only visible when search is not focused */}
         {!isSearchFocused && (
           <>
             <Text style={styles.sectionTitle}>Food Categories</Text>
@@ -190,7 +181,6 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   );
 }
 
-// Combined styles
 const styles = StyleSheet.create({
   ...baseStyles,
   profileButtonText: {
@@ -201,13 +191,6 @@ const styles = StyleSheet.create({
   resultsContainer: {
     marginBottom: 20,
     paddingHorizontal: 10,
-  },
-  resultsContainerFocused: {
-    marginTop: 10, // Add extra space above when focused
-  },
-  sectionTitleFocused: {
-    fontSize: 22, // Larger title when focused
-    marginBottom: 15,
   },
   productItem: {
     flexDirection: 'row',
@@ -257,11 +240,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 2,
-  },
-  productCategory: {
-    fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic',
   },
   productIngredients: {
     fontSize: 11,
