@@ -1,60 +1,9 @@
 import React, { useState } from 'react';
-import { SafeAreaView, ScrollView, Text, View, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView, ScrollView, Text, View, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import { styles as baseStyles } from '../styles/HomeStyles';
 import ProfileScreen from './ProfileScreen';
 import { useToast } from '../utils/ToastContext';
-
-// Importar datos de muestra
-const sampleProducts = [
-  {
-    id: "0000105000011",
-    name: "Chamomile Herbal Tea",
-    brand: "Lagg's",
-    category: "Herbal Tea",
-    image: "🌼",
-    ingredients: "CHAMOMILE FLOWERS."
-  },
-  {
-    id: "0000105000042",
-    name: "Lagg's, herbal tea, peppermint",
-    brand: "Lagg's",
-    category: "Herbal Tea",
-    image: "🌿",
-    ingredients: "Peppermint."
-  },
-  {
-    id: "0000105000059",
-    name: "Linden Flowers Tea",
-    brand: "Lagg's",
-    category: "Herbal Tea",
-    image: "🌸",
-    ingredients: "LINDEN FLOWERS."
-  },
-  {
-    id: "0000105000073",
-    name: "Herbal Tea, Hibiscus",
-    brand: "Lagg's",
-    category: "Herbal Tea",
-    image: "🌺",
-    ingredients: "Hibiscus flowers."
-  },
-  {
-    id: "0000105000196",
-    name: "Apple & Cinnamon Tea",
-    brand: "Lagg's",
-    category: "Flavored Tea",
-    image: "🍎",
-    ingredients: "TEA, CINNAMON & NATURAL APPLE FLAVOR."
-  },
-  {
-    id: "0000105000219",
-    name: "Green Tea",
-    brand: "Lagg's",
-    category: "Green Tea",
-    image: "🍵",
-    ingredients: "GREEN TEA."
-  }
-];
+import { sampleProducts } from '../data/productData';
 
 interface User {
   id?: string;
@@ -72,33 +21,47 @@ interface HomeScreenProps {
 export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [searchText, setSearchText] = useState('');
-  // Inicializar con solo los 2 primeros productos
+  // Initialize with only the first 2 products
   const [searchResults, setSearchResults] = useState(sampleProducts.slice(0, 2));
   const { showToast } = useToast();
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Función para manejar la búsqueda
+  // Function to handle search
   const handleSearch = (text: string) => {
     setSearchText(text);
     
     if (text.trim() === '') {
-      // Cuando no hay término de búsqueda, mostrar solo los 2 primeros productos
+      // When there's no search term, show only the first 2 products
       setSearchResults(sampleProducts.slice(0, 2));
     } else {
       const filtered = sampleProducts.filter(product => 
-        product.name.toLowerCase().includes(text.toLowerCase()) ||
-        product.brand.toLowerCase().includes(text.toLowerCase()) ||
-        product.category.toLowerCase().includes(text.toLowerCase()) ||
-        product.ingredients.toLowerCase().includes(text.toLowerCase())
+        product.product_name.toLowerCase().includes(text.toLowerCase()) ||
+        product.brands.toLowerCase().includes(text.toLowerCase()) ||
+        product.ingredients_text.toLowerCase().includes(text.toLowerCase())
       );
       setSearchResults(filtered);
     }
   };
 
+  // Function to render default emoji if image fails to load
+  const getDefaultEmoji = (product: typeof sampleProducts[0]): string => {
+    const name = product.product_name.toLowerCase();
+    const ingredients = product.ingredients_text.toLowerCase();
+    
+    if (name.includes('erdnuss') || ingredients.includes('erdnüsse')) return '🥜';
+    if (name.includes('hafer') || ingredients.includes('hafer')) return '🌾';
+    if (name.includes('sekt')) return '🍾';
+    if (name.includes('kuchen') || name.includes('back')) return '🍰';
+    if (name.includes('quinoa')) return '🌿';
+    
+    // Default emoji if no match
+    return '🍽️';
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
-        {/* Header con botón de perfil */}
+        {/* Header with profile button */}
         <View style={styles.headerContainer}>
           <Text style={styles.headerText}>Home</Text>
           <TouchableOpacity style={styles.profileButton} onPress={() => setShowProfile(true)}>
@@ -106,7 +69,7 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
           </TouchableOpacity>
         </View>
 
-        {/* Nuevo buscador simple */}
+        {/* Simple search bar */}
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -115,7 +78,7 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
             onChangeText={handleSearch}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => {
-              // Solo cambiamos a no enfocado si no hay texto de búsqueda
+              // Only change to not focused if there's no search text
               if (!searchText) {
                 setIsSearchFocused(false);
               }
@@ -134,36 +97,41 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
           ) : null}
         </View>
 
-        {/* Resultados de búsqueda */}
+        {/* Search results */}
         <View style={styles.resultsContainer}>
           <Text style={styles.sectionTitle}>
-            {searchText ? 'Search Results' : 'Featured Products (2 of 3)'}
+            {searchText ? 'Search Results' : 'Featured Products (2 of 6)'}
           </Text>
           
           {searchResults.length > 0 ? (
             <>
               {searchResults.map(product => (
                 <TouchableOpacity 
-                  key={product.id} 
+                  key={product.code} 
                   style={styles.productItem}
                   onPress={() => {}}
                 >
                   <View style={styles.productImageContainer}>
-                    <Text style={styles.productEmoji}>{product.image}</Text>
+                    {product.image_url ? (
+                      <Image
+                        source={{ uri: product.image_url }}
+                        style={styles.productImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.productEmoji}>{getDefaultEmoji(product)}</Text>
+                    )}
                   </View>
                   <View style={styles.productInfo}>
-                    <Text style={styles.productName}>{product.name}</Text>
-                    <Text style={styles.productBrand}>{product.brand}</Text>
-                    <Text style={styles.productCategory}>{product.category}</Text>
+                    <Text style={styles.productName}>{product.product_name}</Text>
+                    <Text style={styles.productBrand}>{product.brands}</Text>
                     <Text style={styles.productIngredients} numberOfLines={1}>
-                      {product.ingredients}
+                      {product.ingredients_text}
                     </Text>
                   </View>
                   <Text style={styles.arrowIcon}>→</Text>
                 </TouchableOpacity>
               ))}
-              
-
             </>
           ) : (
             <View style={styles.noResultsContainer}>
@@ -173,7 +141,7 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
           )}
         </View>
 
-        {/* Sección de categorías de alimentos - solo visible cuando la búsqueda no está enfocada */}
+        {/* Food categories section - only visible when search is not focused */}
         {!isSearchFocused && (
           <>
             <Text style={styles.sectionTitle}>Food Categories</Text>
@@ -222,7 +190,7 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
   );
 }
 
-// Estilos combinados
+// Combined styles
 const styles = StyleSheet.create({
   ...baseStyles,
   profileButtonText: {
@@ -235,10 +203,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   resultsContainerFocused: {
-    marginTop: 10, // Agregar espacio adicional arriba cuando está enfocado
+    marginTop: 10, // Add extra space above when focused
   },
   sectionTitleFocused: {
-    fontSize: 22, // Título más grande cuando está enfocado
+    fontSize: 22, // Larger title when focused
     marginBottom: 15,
   },
   productItem: {
@@ -267,6 +235,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 1,
+  },
+  productImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 25,
   },
   productEmoji: {
     fontSize: 24,
