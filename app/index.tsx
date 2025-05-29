@@ -1,4 +1,4 @@
-// app/index.tsx
+// app/index.tsx - Completely removed JWT references
 import React, { useState, useEffect } from "react";
 import { 
   SafeAreaView,
@@ -13,11 +13,10 @@ import SignupForm from "./screens/SignupForm";
 import { User } from "./components/Login/User";
 import TabNavigator from "./navigation/TabNavigator";
 import { styles } from "./styles/IndexStyles";
-import { getToken, removeToken } from "./lib/authUtils";
-import { ApiService } from "./services/api";
+import { getUser, removeUser } from "./lib/authUtils";
 
 // URL de tu API (reemplazar con la URL de Vercel cuando esté desplegado)
-const API_URL = "https://7ujm8uhb.vercel.app";
+const API_URL = "https://bhu8vgy7nht5.vercel.app/";
 
 export default function Index() {
   const [isLogin, setIsLogin] = useState(true);
@@ -31,27 +30,13 @@ export default function Index() {
 
   const checkAuthentication = async () => {
     try {
-      const token = await getToken();
-      if (token) {
-        // Verificar si el token es válido
-        const response = await ApiService.fetch('/verify-token');
-        if (response.valid && response.user) {
-          setUser({
-            _id: response.user.userID,
-            userID: response.user.userID,
-            name: response.user.name,
-            email: response.user.email,
-            language: response.user.language || 'es',
-            trialPeriodDays: response.user.trialPeriodDays || 5
-          });
-        } else {
-          // Token inválido, limpiar
-          await removeToken();
-        }
+      const userData = await getUser();
+      if (userData) {
+        setUser(userData);
       }
     } catch (error) {
       console.error('Error checking authentication:', error);
-      await removeToken();
+      await removeUser();
     } finally {
       setLoading(false);
     }
@@ -59,7 +44,7 @@ export default function Index() {
 
   const handleLogout = async () => {
     try {
-      await removeToken();
+      await removeUser();
       setUser(null);
     } catch (error) {
       console.error('Error during logout:', error);
