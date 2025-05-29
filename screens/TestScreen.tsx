@@ -12,8 +12,6 @@ import { styles } from '../styles/TestStyles';
 
 import { ApiService } from '../services/api';
 
-import { useToast } from '../utils/ToastContext';
-
 import TestCalendar from '../components/Test/TestCalendar';
 
 import TestItem from '../components/Test/TestItem';
@@ -47,7 +45,6 @@ export default function TestScreen(): JSX.Element {
   const [activeTests, setActiveTests] = useState<TestItem[]>([]);
   const [completedTests, setCompletedTests] = useState<TestItem[]>([]);
   const [filteredTests, setFilteredTests] = useState<TestItem[]>([]);
-  const { showToast } = useToast();
 
   // Load tests on component mount
   useEffect(() => {
@@ -92,7 +89,6 @@ export default function TestScreen(): JSX.Element {
       setFilteredTests(testsForSelectedDate);
     } catch (error: any) {
       console.error('Error fetching tests:', error);
-      showToast('Failed to load tests', 'error');
     } finally {
       setLoading(false);
     }
@@ -119,7 +115,6 @@ export default function TestScreen(): JSX.Element {
             text: "Complete Test",
             onPress: async () => {
               await ApiService.completeTest(testId, null);
-              showToast('Test completed successfully', 'success');
               // Refresh the test list
               fetchTests();
             }
@@ -128,7 +123,6 @@ export default function TestScreen(): JSX.Element {
       );
     } catch (error: any) {
       console.error('Error completing test:', error);
-      showToast('Failed to complete test', 'error');
     }
   };
 
