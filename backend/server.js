@@ -87,10 +87,32 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   language: { type: String, default: "en" },
-  trialPeriodDays: { type: Number, default: 5 },
-  googleId: { type: String, sparse: true },
-  authProvider: { type: String, default: 'local' }
-}, { timestamps: true });
+  trialPeriodDays: { type: Number, default: 7 },
+  googleId: { type: String },
+  authProvider: { type: String, default: 'local' },
+  
+  // Nueva información personal
+  personalInfo: {
+    rut: { type: String },
+    phoneNumber: { type: String },
+    dateOfBirth: { type: String },
+    allergies: [{ type: String }],
+    diagnosedDiseases: [{ type: String }],
+    paymentMethod: [{
+      type: {
+        type: String,
+        enum: ['credit_card', 'debit_card', 'paypal', 'bank_transfer']
+      },
+      details: { type: String },
+      isDefault: { type: Boolean, default: false }
+    }]
+  },
+  
+  // Metadatos
+  profileCompleteness: { type: Number, default: 0 },
+  lastUpdated: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now }
+});
 
 // Articles Schema
 const ArticleSchema = new mongoose.Schema({
@@ -869,29 +891,6 @@ app.get("/ingredient-reactions", authenticateUser, async (req, res) => {
   }
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // IMPORTANTE: Bypasss de autenticación para emergencias
 // DESCOMENTAR SOLO SI NECESITAS UN ACCESO DE EMERGENCIA
 /*
@@ -944,4 +943,112 @@ if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
   });
+}
+
+// Actualizar información personal del usuario
+app.put("/api/users/:userId/personal-info", authenticateUser, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { personalInfo } = req.body;
+
+    // Verificar que el usuario sea el propietario de los datos
+    if (req.user.userID !== userId) {
+      return res.status(403).json({ error: "No autorizado para modificar estos datos" });
+    }
+
+    // Validar datos antes de guardar
+    if (personalInfo.rut && !validateRUT(personalInfo.rut)) {
+      return res.status(400).json({ error: "RUT inválido" });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { userID: userId },
+      { 
+        $set: { 
+          personalInfo: personalInfo,
+          profileCompleteness: calculateProfileCompleteness(personalInfo),
+          lastUpdated: new Date()
+        }
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Remover contraseña de la respuesta
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.json({ 
+      message: "Información personal actualizada correctamente",
+      user: userResponse 
+    });
+  } catch (error) {
+    console.error('Error updating personal info:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Obtener información personal del usuario
+app.get("/api/users/:userId/personal-info", authenticateUser, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Verificar que el usuario sea el propietario de los datos
+    if (req.user.userID !== userId) {
+      return res.status(403).json({ error: "No autorizado para acceder a estos datos" });
+    }
+
+    const user = await User.findOne({ userID: userId }).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    res.json({ personalInfo: user.personalInfo || {} });
+  } catch (error) {
+    console.error('Error fetching personal info:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Función auxiliar para validar RUT
+function validateRUT(rut) {
+  const cleaned = rut.replace(/[^0-9kK]/g, '');
+  if (cleaned.length < 2) return false;
+  
+  const body = cleaned.slice(0, -1);
+  const dv = cleaned.slice(-1).toUpperCase();
+  
+  let sum = 0;
+  let multiplier = 2;
+  
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body[i]) * multiplier;
+    multiplier = multiplier === 7 ? 2 : multiplier + 1;
+  }
+  
+  const remainder = sum % 11;
+  const expectedDV = remainder < 2 ? remainder.toString() : remainder === 11 ? '0' : 'K';
+  
+  return dv === expectedDV;
+}
+
+// Función auxiliar para calcular completitud del perfil
+function calculateProfileCompleteness(personalInfo) {
+  if (!personalInfo) return 0;
+  
+  const fields = [
+    personalInfo.rut,
+    personalInfo.phoneNumber,
+    personalInfo.dateOfBirth,
+    personalInfo.allergies && personalInfo.allergies.length > 0,
+    personalInfo.diagnosedDiseases && personalInfo.diagnosedDiseases.length > 0,
+    personalInfo.paymentMethod && personalInfo.paymentMethod.length > 0
+  ];
+  
+  const completedFields = fields.filter(Boolean).length;
+  return Math.round((completedFields / fields.length) * 100);
 }

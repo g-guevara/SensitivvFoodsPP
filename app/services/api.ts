@@ -325,4 +325,48 @@ static async getIngredientReactions() {
       body: JSON.stringify({ result }),
     });
   }
+  static async updateUserPersonalInfo(userId: string, personalInfo: any): Promise<void> {
+    try {
+      const response = await fetch(`${API_URL}/api/users/${userId}/personal-info`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': userId,
+        },
+        body: JSON.stringify({ personalInfo }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar información personal');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating personal info:', error);
+      throw error;
+    }
+  }
+
+  static async getUserPersonalInfo(userId: string): Promise<any> {
+    try {
+      const response = await fetch(`${API_URL}/api/users/${userId}/personal-info`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'user-id': userId,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al obtener información personal');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching personal info:', error);
+      throw error;
+    }
+  }
 }
