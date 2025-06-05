@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Product } from '../data/productData';
+import { ApiService } from '../services/api';
 
 export default function ProductInfoScreen() {
   const router = useRouter();
@@ -29,11 +30,24 @@ export default function ProductInfoScreen() {
       try {
         const productJson = await AsyncStorage.getItem('selectedProduct');
         if (productJson) {
-          const loadedProduct = JSON.parse(productJson);
-          setProduct(loadedProduct);
+          const productData = JSON.parse(productJson);
+          
+          // Si tenemos el código del producto, intentamos obtener datos actualizados
+          if (productData.code) {
+            try {
+              const freshProduct = await ApiService.getProductByBarcode(productData.code);
+              setProduct(freshProduct);
+            } catch (error) {
+              console.error('Error fetching fresh product data:', error);
+              // Si falla, usamos los datos guardados
+              setProduct(productData);
+            }
+          } else {
+            setProduct(productData);
+          }
         }
       } catch (error) {
-        console.error('Error loading product from AsyncStorage:', error);
+        console.error('Error loading product:', error);
       } finally {
         setLoading(false);
       }

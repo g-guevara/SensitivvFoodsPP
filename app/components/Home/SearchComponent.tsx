@@ -1,10 +1,12 @@
 // Updated SearchComponent.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sampleProducts } from '../../data/productData';
 import { searchStyles } from '../../styles/HomeComponentStyles';
+import { ApiService } from '../../services/api'; // Asegúrate de que la ruta sea correcta
+import type { Product } from '../../data/productData';
 
 interface SearchComponentProps {
   onFocusChange: (focused: boolean) => void;
@@ -13,24 +15,42 @@ interface SearchComponentProps {
 export default function SearchComponent({ onFocusChange }: SearchComponentProps) {
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
-  const [searchResults, setSearchResults] = useState(sampleProducts.slice(0, 2));
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Function to handle search
-  const handleSearch = (text: string) => {
-    setSearchText(text);
+  // Función de búsqueda mejorada
+  const handleSearch = async (text: string) => {
+    if (!text.trim()) {
+      setSearchResults([]);
+      return;
+    }
 
-    if (text.trim() === '') {
-      setSearchResults(sampleProducts.slice(0, 2));
-    } else {
-      const filtered = sampleProducts.filter(product =>
+    setLoading(true);
+    try {
+      // Usar el texto de búsqueda en la llamada a la API
+      const results = await ApiService.searchProducts(text.trim());
+      setSearchResults(results.filter(product => 
         product.product_name.toLowerCase().includes(text.toLowerCase()) ||
-        product.brands.toLowerCase().includes(text.toLowerCase()) ||
-        product.ingredients_text.toLowerCase().includes(text.toLowerCase())
-      );
-
-      setSearchResults(filtered.slice(0, 15)); // Show only up to 15 results
+        product.brands?.toLowerCase().includes(text.toLowerCase())
+      ));
+    } catch (error) {
+      console.error('Error in search:', error);
+      setSearchResults([]);
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Implementar debounce para evitar demasiadas llamadas a la API
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchText) {
+        handleSearch(searchText);
+      }
+    }, 300); // espera 300ms después de que el usuario deja de escribir
+
+    return () => clearTimeout(timeoutId);
+  }, [searchText]);
 
   const getDefaultEmoji = (product: typeof sampleProducts[0]): string => {
     const name = product.product_name.toLowerCase();
@@ -54,6 +74,13 @@ export default function SearchComponent({ onFocusChange }: SearchComponentProps)
     }
   };
 
+  const handleInputChange = (text: string) => {
+    setSearchText(text);
+    if (!text) {
+      setSearchResults([]);
+    }
+  };
+
   return (
     <>
       <View style={searchStyles.searchContainer}>
@@ -61,7 +88,7 @@ export default function SearchComponent({ onFocusChange }: SearchComponentProps)
           style={searchStyles.searchInput}
           placeholder="Search"
           value={searchText}
-          onChangeText={handleSearch}
+          onChangeText={handleInputChange}
           onFocus={() => onFocusChange(true)}
           onBlur={() => {
             if (!searchText) {
