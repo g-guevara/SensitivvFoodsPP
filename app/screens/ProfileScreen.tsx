@@ -1,4 +1,3 @@
-// app/screens/ProfileScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -24,6 +23,7 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreenProps) {
+  // Estados existentes
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -31,8 +31,14 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
   const [confirmPassword, setConfirmPassword] = useState('');
   const [trialDays, setTrialDays] = useState(user.trialPeriodDays.toString());
   const [loading, setLoading] = useState(false);
+  
+  // Nuevo estado para el formulario de información personal
+  const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User>(user);
+  
   const { showToast } = useToast();
 
+  // Funciones existentes
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       showToast('Please fill in all fields', 'error');
@@ -82,6 +88,34 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
     }
   };
 
+  // Nueva función para manejar actualización de usuario
+  const handleUserUpdate = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    showToast('Información personal actualizada correctamente', 'success');
+  };
+
+  // Funciones auxiliares para información personal
+  const getProfileCompleteness = () => {
+    return currentUser.profileCompleteness || 0;
+  };
+
+  const getPersonalInfoSummary = () => {
+    const info = currentUser.personalInfo;
+    if (!info) return null;
+
+    const items = [];
+    if (info.rut) items.push(`RUT: ${info.rut}`);
+    if (info.phoneNumber) items.push(`Teléfono: ${info.phoneNumber}`);
+    if (info.allergies && info.allergies.length > 0) {
+      items.push(`Alergias: ${info.allergies.length} registrada(s)`);
+    }
+    if (info.diagnosedDiseases && info.diagnosedDiseases.length > 0) {
+      items.push(`Enfermedades: ${info.diagnosedDiseases.length} registrada(s)`);
+    }
+    
+    return items;
+  };
+
   return (
     <Modal
       visible={true}
@@ -116,19 +150,55 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
                 />
               </Svg>
             </View>
-            <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text style={styles.userName}>{currentUser.name}</Text>
+            <Text style={styles.userEmail}>{currentUser.email}</Text>
           </View>
 
-          <View style={styles.infoSection}>
+          {/* Nueva sección de completitud del perfil */}
+          {getProfileCompleteness() > 0 && (
+            <View style={styles.completenessSection}>
+              <Text style={styles.completenessTitle}>Completitud del perfil</Text>
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill, 
+                      { width: `${getProfileCompleteness()}%` }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.progressPercentage}>{getProfileCompleteness()}%</Text>
+              </View>
+            </View>
+          )}
 
+          {/* Nueva sección de resumen de información personal */}
+          {getPersonalInfoSummary() && getPersonalInfoSummary()!.length > 0 && (
+            <View style={styles.personalInfoSummary}>
+              <Text style={styles.summaryTitle}>Información Personal</Text>
+              {getPersonalInfoSummary()!.map((item, index) => (
+                <Text key={index} style={styles.summaryItem}>{item}</Text>
+              ))}
+            </View>
+          )}
+
+          <View style={styles.infoSection}>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Trial Period</Text>
-              <Text style={styles.infoValue}>{user.trialPeriodDays} days</Text>
+              <Text style={styles.infoValue}>{currentUser.trialPeriodDays} days</Text>
             </View>
           </View>
 
           <View style={styles.actionSection}>
+            {/* Nuevo botón para información personal */}
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => setShowPersonalInfoModal(true)}
+            >
+              <Text style={styles.actionButtonText}>Editar Información Personal</Text>
+            </TouchableOpacity>
+
+            {/* Botones existentes */}
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={() => setShowPasswordModal(true)}
@@ -168,7 +238,7 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
           </View>
         </ScrollView>
 
-        {/* Password Change Modal */}
+        {/* Modal existente para cambio de contraseña */}
         <Modal
           visible={showPasswordModal}
           animationType="fade"
@@ -232,7 +302,7 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
           </TouchableOpacity>
         </Modal>
 
-        {/* Trial Period Modal */}
+        {/* Modal existente para período de prueba */}
         <Modal 
           visible={showTrialModal}
           animationType="fade"
@@ -281,12 +351,31 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
             </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
+
+        {/* Nuevo modal para información personal */}
+        <Modal
+          visible={showPersonalInfoModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowPersonalInfoModal(false)}
+        >
+          <PersonalInfoForm
+            user={currentUser}
+            onUserUpdate={handleUserUpdate}
+            onClose={() => setShowPersonalInfoModal(false)}
+          />
+        </Modal>
       </SafeAreaView>
     </Modal>
   );
 }
 
+// Importar el componente PersonalInfoForm aquí mismo para evitar problemas de dependencias
+import PersonalInfoForm from '../components/Profile/PersonalInfoForm';
+
+// Estilos existentes + nuevos estilos
 const styles = StyleSheet.create({
+  // ... todos los estilos existentes se mantienen igual
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
@@ -338,6 +427,66 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  
+  // Nuevos estilos para información personal
+  completenessSection: {
+    backgroundColor: '#fff',
+    marginBottom: 16,
+    padding: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  completenessTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginRight: 12,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+  },
+  progressPercentage: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#007AFF',
+  },
+  personalInfoSummary: {
+    backgroundColor: '#fff',
+    marginBottom: 16,
+    padding: 16,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  summaryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  summaryItem: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  
+  // Estilos existentes
   infoSection: {
     backgroundColor: '#fff',
     marginBottom: 16,
