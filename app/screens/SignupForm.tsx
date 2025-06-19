@@ -1,4 +1,4 @@
-// app/screens/SignupForm.tsx
+// app/screens/SignupForm.tsx - Updated with security features
 import React, { useState, useEffect } from "react";
 import { 
   Text, 
@@ -7,12 +7,12 @@ import {
   TouchableOpacity, 
   ActivityIndicator,
   Image,
-  ViewStyle,
-  TextStyle,
 } from "react-native";
 import { useToast } from '../utils/ToastContext';
 import { styles } from "../styles/SignupFormStyles";
 import { ApiService } from "../services/api";
+import { SecurityUtils } from "../utils/securityUtils";
+import { getUserFriendlyError } from "../utils/securityConfig";
 
 interface SignupFormProps {
   onSwitchToLogin: () => void;
@@ -34,13 +34,40 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Estados de seguridad
+  const [isDeviceBlocked, setIsDeviceBlocked] = useState(false);
+  const [accountsCreated, setAccountsCreated] = useState(0);
+  
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({
     score: 0,
     color: '#e74c3c',
     width: 0,
     label: 'Very Weak'
   });
+  
   const { showToast } = useToast();
+
+  // Verificar estado de seguridad al montar el componente
+  useEffect(() => {
+    checkSecurityStatus();
+  }, []);
+
+  const checkSecurityStatus = async () => {
+    try {
+      const deviceBlocked = await SecurityUtils.isDeviceBlocked();
+      const accountsCount = await SecurityUtils.getAccountsCreatedCount();
+      
+      setIsDeviceBlocked(deviceBlocked);
+      setAccountsCreated(accountsCount);
+      
+      if (deviceBlocked) {
+        console.log('Device blocked for signup');
+      }
+    } catch (error) {
+      console.error('Error checking security status:', error);
+    }
+  };
 
   const calculatePasswordStrength = (password: string) => {
     let score = 0;
@@ -66,30 +93,30 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
     switch (score) {
       case 0:
       case 1:
-        color = '#e74c3c';  // Red
+        color = '#e74c3c';
         width = 20;
         label = 'Very Weak';
         break;
       case 2:
-        color = '#e67e22';  // Orange
+        color = '#e67e22';
         width = 40;
         label = 'Weak';
         break;
       case 3:
-        color = '#f39c12';  // Yellow
+        color = '#f39c12';
         width = 60;
-        label = 'Fair';
+        label = 'Acceptable';
         break;
       case 4:
-        color = '#2ecc71';  // Green
+        color = '#2ecc71';
         width = 80;
         label = 'Good';
         break;
       case 5:
       case 6:
-        color = '#27ae60';  // Dark Green
+        color = '#27ae60';
         width = 100;
-        label = 'Strong';
+        label = 'Excellent';
         break;
       default:
         color = '#e74c3c';
@@ -107,7 +134,7 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
   const validatePassword = (password: string): boolean => {
     // Check if password has at least 8 characters
     if (password.length < 8) {
-      showToast('Password must be at least 8 characters long', 'error');
+      showToast('Password must be at least 8 characters', 'error');
       return false;
     }
     
@@ -121,8 +148,22 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
   };
 
   const handleSignup = async () => {
+    // Verificar si el dispositivo está bloqueado
+    if (isDeviceBlocked) {
+      showToast('Device blocked for security reasons', 'error');
+      return;
+    }
+
+    // Validaciones básicas
     if (!signupName || !signupEmail || !signupPassword || !confirmPassword) {
       showToast('Please fill in all fields', 'error');
+      return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(signupEmail)) {
+      showToast('Please enter a valid email', 'error');
       return;
     }
 
@@ -143,10 +184,20 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
         name: signupName,
         email: signupEmail,
         password: signupPassword,
-        language: 'en'  // Always inject English
+        language: 'en'
       });
 
-      showToast('Account created successfully!', 'success');
+      // Incrementar contador de cuentas creadas en este dispositivo
+      await SecurityUtils.incrementAccountsCreated();
+      
+      // Verificar si el dispositivo se bloqueó después de crear esta cuenta
+      const newDeviceBlocked = await SecurityUtils.isDeviceBlocked();
+      if (newDeviceBlocked) {
+        setIsDeviceBlocked(true);
+        showToast('Account created successfully. Device reached security limit.', 'warning');
+      } else {
+        showToast('Account created successfully!', 'success');
+      }
       
       // Wait a moment before switching to login
       setTimeout(() => {
@@ -164,18 +215,31 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
         width: 0,
         label: 'Very Weak'
       });
-    } catch (error: any) {
-      console.error("Error en registro:", error);
       
-      if (error instanceof TypeError && error.message.includes('Network request failed')) {
-        showToast('Please check your internet connection', 'error');
-      } else {
-        showToast(error.message || 'Failed to create account', 'error');
-      }
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      
+      // Usar mensajes de error amigables
+      const friendlyError = getUserFriendlyError(error);
+      showToast(friendlyError, 'error');
+      
     } finally {
       setLoading(false);
     }
   };
+
+  const getAccountLimitWarning = () => {
+    if (accountsCreated >= 7 && accountsCreated < 10) {
+      const remaining = 10 - accountsCreated;
+      return `${remaining} more account${remaining !== 1 ? 's' : ''} can be created on this device`;
+    }
+    return null;
+  };
+
+  // Si el dispositivo está bloqueado, no mostrar el formulario
+  if (isDeviceBlocked) {
+    return null; // El componente padre debería manejar esto
+  }
 
   return (
     <View style={styles.formContainer}>
@@ -187,14 +251,25 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
         />
       </View>
       
-      <Text style={styles.title}>Sign Up</Text>
+      <Text style={styles.title}>Create Account</Text>
+      
+      {/* Mostrar advertencia de límite de cuentas */}
+      {getAccountLimitWarning() && (
+        <View style={styles.warningContainer}>
+          <Text style={styles.warningText}>
+            ⚠️ {getAccountLimitWarning()}
+          </Text>
+        </View>
+      )}
       
       <TextInput
         style={styles.input}
-        placeholder="Name"
+        placeholder="Full name"
         value={signupName}
         onChangeText={setSignupName}
+        autoCapitalize="words"
       />
+      
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -203,6 +278,7 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
         keyboardType="email-address"
         autoCapitalize="none"
       />
+      
       <View style={styles.passwordContainer}>
         <TextInput
           style={styles.passwordInput}
@@ -236,7 +312,7 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
             />
           </View>
           <Text style={[styles.passwordStrengthLabel, { color: passwordStrength.color }]}>
-            {passwordStrength.label}
+            Security: {passwordStrength.label}
           </Text>
         </View>
       )}
@@ -272,7 +348,7 @@ export default function SignupForm({ onSwitchToLogin, apiUrl }: SignupFormProps)
       <View style={styles.passwordContainer}>
         <TextInput
           style={styles.passwordInput}
-          placeholder="Confirm Password"
+          placeholder="Confirm password"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry={!showConfirmPassword}

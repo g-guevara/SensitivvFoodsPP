@@ -1,3 +1,6 @@
+// app/screens/ProfileScreen.tsx
+// FIXED: Actualización automática del trial period
+
 import React, { useState } from 'react';
 import {
   View,
@@ -13,8 +16,10 @@ import {
 } from 'react-native';
 import { Svg, Path } from 'react-native-svg';
 import { useToast } from '../utils/ToastContext';
+import { useOnboarding } from '../utils/OnboardingContext';
 import { User } from '../components/Login/User';
 import { ApiService } from '../services/api';
+import Icon from "react-native-vector-icons/Ionicons";
 
 interface ProfileScreenProps {
   user: User;
@@ -23,7 +28,6 @@ interface ProfileScreenProps {
 }
 
 export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreenProps) {
-  // Estados existentes
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -32,13 +36,31 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
   const [trialDays, setTrialDays] = useState(user.trialPeriodDays.toString());
   const [loading, setLoading] = useState(false);
   
-  // Nuevo estado para el formulario de información personal
-  const [showPersonalInfoModal, setShowPersonalInfoModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User>(user);
+  // 🔥 NUEVO: Estado local para los datos del usuario que se pueden actualizar
+  const [localTrialPeriod, setLocalTrialPeriod] = useState(user.trialPeriodDays);
   
   const { showToast } = useToast();
+  const { resetOnboardingForTutorial } = useOnboarding();
 
-  // Funciones existentes
+  const handleRepeatTutorial = () => {
+    console.log('🔄 Repeat Tutorial button pressed');
+    
+    try {
+      showToast('Starting tutorial...', 'success');
+      
+      // Cerrar el modal de perfil primero
+      onClose();
+      
+      // Llamar la función para resetear el onboarding inmediatamente
+      resetOnboardingForTutorial();
+      
+      console.log('✅ resetOnboardingForTutorial called successfully');
+    } catch (error) {
+      console.error('❌ Error in handleRepeatTutorial:', error);
+      showToast('Error starting tutorial', 'error');
+    }
+  };
+
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       showToast('Please fill in all fields', 'error');
@@ -74,46 +96,29 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
 
     setLoading(true);
     try {
+      console.log('💾 Updating trial period to:', days);
+      
+      // Actualizar en el backend
       await ApiService.updateTrialPeriod(days);
+      
+      // 🔥 NUEVO: Actualizar el estado local inmediatamente
+      setLocalTrialPeriod(days);
+      console.log('✅ Local trial period updated to:', days);
+      
       showToast('Trial period updated successfully', 'success');
       setShowTrialModal(false);
-      // Update local user data
+      
+      // También actualizar el objeto user (aunque esto no es la solución principal)
       if (user) {
         user.trialPeriodDays = days;
       }
+      
     } catch (error: any) {
+      console.error('❌ Error updating trial period:', error);
       showToast(error.message || 'Failed to update trial period', 'error');
     } finally {
       setLoading(false);
     }
-  };
-
-  // Nueva función para manejar actualización de usuario
-  const handleUserUpdate = (updatedUser: User) => {
-    setCurrentUser(updatedUser);
-    showToast('Información personal actualizada correctamente', 'success');
-  };
-
-  // Funciones auxiliares para información personal
-  const getProfileCompleteness = () => {
-    return currentUser.profileCompleteness || 0;
-  };
-
-  const getPersonalInfoSummary = () => {
-    const info = currentUser.personalInfo;
-    if (!info) return null;
-
-    const items = [];
-    if (info.rut) items.push(`RUT: ${info.rut}`);
-    if (info.phoneNumber) items.push(`Teléfono: ${info.phoneNumber}`);
-    if (info.allergies && info.allergies.length > 0) {
-      items.push(`Alergias: ${info.allergies.length} registrada(s)`);
-    }
-    if (info.diagnosedDiseases && info.diagnosedDiseases.length > 0) {
-      items.push(`Enfermedades: ${info.diagnosedDiseases.length} registrada(s)`);
-    }
-    
-    return items;
   };
 
   return (
@@ -130,7 +135,7 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
             <Svg width={24} height={24} viewBox="0 0 24 24" fill="#000">
               <Path
                 d="M6 18L18 6M6 6l12 12"
-                stroke="currentColor"
+                stroke="#000000"
                 strokeWidth={2}
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -142,75 +147,38 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
         <ScrollView style={styles.content}>
           <View style={styles.profileSection}>
             <View style={styles.avatarContainer}>
-              <Svg width={80} height={80} viewBox="0 0 24 24" fill="#4285F4">
-                <Path 
-                  fillRule="evenodd" 
-                  d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" 
-                  clipRule="evenodd" 
-                />
-              </Svg>
+                <Icon name="person" size={100} color=" #000 "/>
             </View>
-            <Text style={styles.userName}>{currentUser.name}</Text>
-            <Text style={styles.userEmail}>{currentUser.email}</Text>
+            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
           </View>
-
-          {/* Nueva sección de completitud del perfil */}
-          {getProfileCompleteness() > 0 && (
-            <View style={styles.completenessSection}>
-              <Text style={styles.completenessTitle}>Completitud del perfil</Text>
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                  <View 
-                    style={[
-                      styles.progressFill, 
-                      { width: `${getProfileCompleteness()}%` }
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.progressPercentage}>{getProfileCompleteness()}%</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Nueva sección de resumen de información personal */}
-          {getPersonalInfoSummary() && getPersonalInfoSummary()!.length > 0 && (
-            <View style={styles.personalInfoSummary}>
-              <Text style={styles.summaryTitle}>Información Personal</Text>
-              {getPersonalInfoSummary()!.map((item, index) => (
-                <Text key={index} style={styles.summaryItem}>{item}</Text>
-              ))}
-            </View>
-          )}
 
           <View style={styles.infoSection}>
             <View style={styles.infoItem}>
               <Text style={styles.infoLabel}>Trial Period</Text>
-              <Text style={styles.infoValue}>{currentUser.trialPeriodDays} days</Text>
+              {/* 🔥 NUEVO: Usar el estado local en lugar del prop */}
+              <Text style={styles.infoValue}>{localTrialPeriod} days</Text>
             </View>
           </View>
 
           <View style={styles.actionSection}>
-            {/* Nuevo botón para información personal */}
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => setShowPersonalInfoModal(true)}
-            >
-              <Text style={styles.actionButtonText}>Editar Información Personal</Text>
-            </TouchableOpacity>
-
-            {/* Botones existentes */}
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => setShowPasswordModal(true)}
-            >
-              <Text style={styles.actionButtonText}>Change Password</Text>
-            </TouchableOpacity>
 
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => setShowTrialModal(true)}
+              onPress={() => {
+                // 🔥 NUEVO: Actualizar trialDays con el valor actual al abrir modal
+                setTrialDays(localTrialPeriod.toString());
+                setShowTrialModal(true);
+              }}
             >
               <Text style={styles.actionButtonText}>Modify Trial Period</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleRepeatTutorial}
+            >
+              <Text style={styles.actionButtonText}>Repeat Tutorial</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -238,7 +206,7 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
           </View>
         </ScrollView>
 
-        {/* Modal existente para cambio de contraseña */}
+        {/* Password Change Modal */}
         <Modal
           visible={showPasswordModal}
           animationType="fade"
@@ -302,7 +270,7 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
           </TouchableOpacity>
         </Modal>
 
-        {/* Modal existente para período de prueba */}
+        {/* Trial Period Modal */}
         <Modal 
           visible={showTrialModal}
           animationType="fade"
@@ -351,34 +319,15 @@ export default function ProfileScreen({ user, onLogout, onClose }: ProfileScreen
             </TouchableOpacity>
           </TouchableOpacity>
         </Modal>
-
-        {/* Nuevo modal para información personal */}
-        <Modal
-          visible={showPersonalInfoModal}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setShowPersonalInfoModal(false)}
-        >
-          <PersonalInfoForm
-            user={currentUser}
-            onUserUpdate={handleUserUpdate}
-            onClose={() => setShowPersonalInfoModal(false)}
-          />
-        </Modal>
       </SafeAreaView>
     </Modal>
   );
 }
 
-// Importar el componente PersonalInfoForm aquí mismo para evitar problemas de dependencias
-import PersonalInfoForm from '../components/Profile/PersonalInfoForm';
-
-// Estilos existentes + nuevos estilos
 const styles = StyleSheet.create({
-  // ... todos los estilos existentes se mantienen igual
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -407,13 +356,9 @@ const styles = StyleSheet.create({
   profileSection: {
     alignItems: 'center',
     padding: 20,
+    paddingTop:30,
     backgroundColor: '#fff',
     marginBottom: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
   },
   avatarContainer: {
     marginBottom: 16,
@@ -427,71 +372,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
-  
-  // Nuevos estilos para información personal
-  completenessSection: {
-    backgroundColor: '#fff',
-    marginBottom: 16,
-    padding: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  completenessTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  progressBar: {
-    flex: 1,
-    height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginRight: 12,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#007AFF',
-  },
-  progressPercentage: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#007AFF',
-  },
-  personalInfoSummary: {
-    backgroundColor: '#fff',
-    marginBottom: 16,
-    padding: 16,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  summaryItem: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  
-  // Estilos existentes
   infoSection: {
     backgroundColor: '#fff',
     marginBottom: 16,
     padding: 16,
-    elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -501,8 +385,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   infoLabel: {
     fontSize: 16,
@@ -518,12 +400,11 @@ const styles = StyleSheet.create({
   actionButton: {
     backgroundColor: '#fff',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 80,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    elevation: 1,
-    shadowColor: '#000',
+   shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,

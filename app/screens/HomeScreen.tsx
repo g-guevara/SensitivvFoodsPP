@@ -1,11 +1,14 @@
- // app/screens/HomeScreen.tsx
+// app/screens/HomeScreen.tsx
 import React, { useState } from 'react';
 import { SafeAreaView, ScrollView, Text, View, TouchableOpacity } from 'react-native';
 import ProfileScreen from './ProfileScreen';
 import { useToast } from '../utils/ToastContext';
+import { useOnboarding } from '../utils/OnboardingContext';
 import SearchComponent from '../components/Home/SearchComponent';
 import CategoriesComponent from '../components/Home/CategoriesComponent';
 import { homeStyles } from '../styles/HomeComponentStyles';
+import { Svg, Path } from 'react-native-svg';
+import Icon from "react-native-vector-icons/Ionicons";
 
 interface User {
   id?: string;
@@ -31,7 +34,8 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
         <View style={homeStyles.headerContainer}>
           <Text style={homeStyles.headerText}>Home</Text>
           <TouchableOpacity style={homeStyles.profileButton} onPress={() => setShowProfile(true)}>
-            <Text style={homeStyles.profileButtonText}>Profile</Text>
+            <Text style={homeStyles.profileButtonText}></Text>
+            <Icon name="person" size={35} color=" #000 "/>
           </TouchableOpacity>
         </View>
 
@@ -40,7 +44,9 @@ export default function HomeScreen({ user, onLogout }: HomeScreenProps) {
         />
 
         {!isSearchFocused && (
-          <CategoriesComponent />
+          <>
+            <CategoriesComponent />
+          </>
         )}
       </ScrollView>
 

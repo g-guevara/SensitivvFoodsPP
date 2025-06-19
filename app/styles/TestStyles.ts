@@ -5,23 +5,30 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+
+    headerSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginTop: 50,
+    marginBottom: 20,
+  },
   headerText: {
     fontSize: 36,
     fontWeight: 'bold',
-    marginTop: 50,
-    marginBottom: 20,
-    paddingHorizontal: 20,
   },
+
   calendarContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     marginBottom: 20,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: '#E5E5E5',
-    paddingVertical: 10,
   },
+
+
+
+
   dayItem: {
     alignItems: 'center',
     padding: 5,
@@ -31,21 +38,55 @@ export const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 5,
   },
+  todayText: {
+    color: '#007AFF',
+    fontWeight: 'bold',
+  },
   dateText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
   },
-  dateCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+  todayDateText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
   selectedDateText: {
-    color: '#fff',
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  // 🔄 CÍRCULOS PERFECTOS PARA LAS FECHAS
+  dateCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20, // ✅ Círculo perfecto (width/2)
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent', // Sin background por defecto
+  },
+  selectedDateCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20, // ✅ Círculo perfecto
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+  },
+  testDateCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20, // ✅ Círculo perfecto
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E8F0FF', // Light blue background
+  },
+  todayCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20, // ✅ Círculo perfecto
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
   },
   sectionTitle: {
     fontSize: 24,
@@ -56,7 +97,7 @@ export const styles = StyleSheet.create({
   currentTestContainer: {
     backgroundColor: '#E8F0FF',
     marginHorizontal: 20,
-    marginBottom: 30,
+    marginBottom: 15, // ✅ Reducido de 30 a 15 para menos espacio
     borderRadius: 15,
     padding: 20,
   },
@@ -71,8 +112,36 @@ export const styles = StyleSheet.create({
     color: '#444',
     marginBottom: 8,
   },
+  progressBarContainer: {
+    marginVertical: 12,
+  },
+  progressBarBackground: {
+    height: 8,
+    backgroundColor: '#D8E2F2',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 4,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'right',
+  },
   productName: {
     fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  testDatesContainer: {
+    marginVertical: 8,
+  },
+  testDateText: {
+    fontSize: 12,
     color: '#666',
   },
   finishButton: {
@@ -135,5 +204,66 @@ export const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  emptyContainer: {
+    padding: 20,
+    backgroundColor: '#F5F5F7',
+    borderRadius: 15,
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 5,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  // Calendar section styles
+  calendarSection: {
+    position: 'relative',
+  },
+  seeCalendarButton: {
+    position: 'absolute',
+    right: 20,
+    top: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  seeCalendarText: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 4,
+  },
+  seeCalendarArrow: {
+    fontSize: 16,
+    color: '#666',
+  },
+  
+  // ✅ NOTIFICACIÓN DE LÍMITE DE TEST ACTUALIZADA
+  testLimitNotification: {
+    marginHorizontal: 20,
+    marginTop: 5, // ✅ Reducido de 10 a 5 para menos padding
+    marginBottom: 10, // ✅ Agregado para equilibrar el espaciado
+    paddingHorizontal: 12, // ✅ Solo padding horizontal
+    paddingVertical: 8, // ✅ Padding vertical mínimo
+    // ✅ Sin backgroundColor (removido)
+  },
+  testLimitText: {
+    fontSize: 12,
+    color: '#8E8E93', // ✅ Cambiado de '#007AFF' a gris
+    textAlign: 'center',
+    fontStyle: 'italic', // ✅ Agregado para darle un toque más sutidsfsdfl
   },
 });
